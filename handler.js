@@ -127,6 +127,28 @@ const getSubjkt = async (req, res) => {
   })
 }
 
+// get Collective
+
+const getCollective = async (req, res) => {
+  const client = new MongoClient(url)
+
+  await client.connect()
+  const database = client.db('OBJKTs-DB')
+  const objkts = database.collection('collective')
+  let query = {}
+  if (req.query.admin) {query = { "metadata.administrator": req.query.admin}}
+  if (req.query.member) {
+    let key = `metadata.shares.${req.query.member}`
+    query = { [key]: { "$exists": 1}}
+  }
+  const limit = parseInt(req.query.size) || 25
+  const offset = parseInt(req.query.page) * limit || 0
+  let r = await objkts.find(query).limit(limit).skip(offset)
+  res.json({
+    result : await r.toArray()
+  })
+}
+
 
 const getOBJKTDataByCreator = async (req, res) => {
   const client = new MongoClient(url)
@@ -166,6 +188,10 @@ app.get('/tz_owner', async (req, res) => {
   await getOBJKTDataByOwner(req, res)
 })
 
+app.get('/collective', async (req, res) => {
+  await getCollective(req, res)
+})
+
 app.get('/tag', async (req, res) => {
   await getTag(req, res)
 })
@@ -190,5 +216,5 @@ app.post('/subjkt', async (req, res) => {
   await getSubjkt(req, res)
 })
 
-//app.listen(3002)
+app.listen(3002)
 module.exports.database = serverless(app)
